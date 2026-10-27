@@ -89,7 +89,28 @@ export const cargarPagina = async (pagina = 1) => {
  *  - Otro error: muestre un mensaje general.
  */
 const alHacerClicEnLista = async (evento) => {
-  // TODO
+  if (!(evento.target instanceof Element)) return;
+
+  const boton = evento.target.closest(".btn-eliminar");
+  if (!boton) return;
+
+  const tarjeta = boton.closest("li[data-id]");
+  if (!tarjeta || !confirm("¿Desea eliminar este equipo?")) return;
+
+  try {
+    await eliminarEquipo(tarjeta.dataset.id);
+    mostrarMensaje("exito", "Equipo eliminado.");
+    const pagina = $lista.querySelectorAll("li.tarjeta").length === 1 && paginaActual > 1
+      ? paginaActual - 1
+      : paginaActual;
+    await cargarPagina(pagina);
+  } catch (error) {
+    if (error.status === 409) {
+      mostrarMensaje("error", error.datos.mensaje);
+    } else {
+      mostrarMensaje("error", "No fue posible eliminar el equipo.");
+    }
+  }
 };
 
 // Parcialmente implementado: complete el TODO de los botones de paginación.
