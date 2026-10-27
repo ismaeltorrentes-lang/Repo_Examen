@@ -35,7 +35,46 @@ export const formatearFecha = (iso) =>
  *  - Si falla, muestre el error con mostrarMensaje("error", ...).
  */
 export const cargarPagina = async (pagina = 1) => {
-  // TODO
+  $lista.setAttribute("aria-busy", "true");
+
+  try {
+    const respuesta = await listarEquipos(pagina, POR_PAGINA);
+    const equipos = respuesta.data ?? [];
+    const meta = respuesta.meta;
+
+    $lista.replaceChildren();
+    for (const equipo of equipos) {
+      const elemento = $plantilla.content.cloneNode(true);
+      const $tarjeta = elemento.querySelector("li");
+      $tarjeta.dataset.id = equipo.id;
+      $tarjeta.querySelector(".codigo").textContent = equipo.codigo;
+      $tarjeta.querySelector(".nombre").textContent = equipo.nombre;
+      $tarjeta.querySelector(".categoria").textContent = equipo.categoria?.nombre ?? "";
+      $tarjeta.querySelector(".fecha").textContent = formatearFecha(equipo.fecha_adquisicion);
+      const $estado = $tarjeta.querySelector(".estado");
+      $estado.textContent = equipo.estado;
+      $estado.dataset.estado = equipo.estado;
+      $lista.append(elemento);
+    }
+
+    if (equipos.length === 0) {
+      const vacio = document.createElement("li");
+      vacio.className = "vacio";
+      vacio.textContent = "No hay equipos registrados.";
+      $lista.append(vacio);
+    }
+
+    paginaActual = meta.current_page;
+    ultimaPagina = meta.last_page;
+    $resumen.textContent = `Mostrando ${meta.from ?? 0}–${meta.to ?? 0} de ${meta.total}`;
+    $paginaActual.textContent = `Página ${meta.current_page} de ${meta.last_page}`;
+    $btnAnterior.disabled = paginaActual <= 1;
+    $btnSiguiente.disabled = paginaActual >= ultimaPagina;
+  } catch (error) {
+    mostrarMensaje("error", error.message ?? "No fue posible cargar los equipos.");
+  } finally {
+    $lista.setAttribute("aria-busy", "false");
+  }
 };
 
 /**
@@ -57,7 +96,8 @@ const alHacerClicEnLista = async (evento) => {
 export const iniciarListado = () => {
   $lista.addEventListener("click", alHacerClicEnLista);
 
-  // TODO [F2] Conecte #btn-anterior y #btn-siguiente con cargarPagina()
+  $btnAnterior.addEventListener("click", () => cargarPagina(paginaActual - 1));
+  $btnSiguiente.addEventListener("click", () => cargarPagina(paginaActual + 1));
 
   cargarPagina(1);
 };
